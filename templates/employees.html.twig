@@ -1,0 +1,127 @@
+{% extends "base.html.twig" %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block body %}
+<main>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <button class="btn btn-primary my-5 float-end" data-bs-toggle="modal" data-bs-target="#employeeModal">Add Employee</button>
+            </div>
+            <div class="col-md-12">
+                <table class="table" id="employees">
+                    <thead>
+                        <tr>
+                            <td>Name</td>
+                            <td>Phone</td>
+                            <td>Action</td>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Modal -->
+        <div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="employeeModalLabel">Add Employee</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="employeeForm" novalidate>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="hidden" name="employee_id" id="employee_id">
+                        <input type="text" class="form-control" id="name" name="name" placeholder="Employee Name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="text" class="form-control" id="phone" name="phone" onkeyup="if (/\D/g.test(this.value)) this.value = this.value.replace(/\D/g,'')" placeholder="Phone Number" required>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+    var employees;
+
+    employees = $('#employees').DataTable({
+        ajax: "{{url('ajax-get-all-employees')}}"
+    });
+
+    $('#employeeForm').on('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var formData = new FormData($(this)[0]);
+
+        $.ajax({
+            method: "POST",
+            url: "{{url('save-employee')}}",
+            data: new FormData($(this)[0]),
+            dataType: "JSON",
+            processData: false,
+            contentType: false,
+            encode: true,
+            success: function() {
+                $('#employeeModal').modal('toggle');
+                $('#employeeForm')[0].reset();
+                employees.ajax.reload();
+            },
+            error: function() {}
+        })
+    })
+
+    $('body').on('click', '.edit-employee', function(e) {
+        e.preventDefault();
+        employee_id = $(this).data('id');
+
+        $.ajax({
+            type: "GET",
+            url: "{{url('ajax-get-employee-data')}}",
+            data: {employee_id},
+            dataType: 'JSON',
+            success: function(response) {
+                $('#employeeModal').modal('toggle');
+                employee_data = response.data;
+                $('#employee_id').val(employee_data.id)
+                $('#name').val(employee_data.name)
+                $('#phone').val(employee_data.phone)
+            },
+            error: function() {}
+        })
+    })
+
+    $('body').on('click', '.delete-employee', function(e) {
+        e.preventDefault();
+        address_id = $(this).data('id');
+
+        if(confirm('Are You Sure?'))
+        {
+            $.ajax({
+                type: "GET",
+                url: "{{url('ajax-remove-employee')}}",
+                data: {address_id},
+                dataType: 'JSON',
+                success: function(response) {
+                    employees.ajax.reload()
+                },
+                error: function() {}
+            })
+        }        
+    })
+</script>
+{% endblock %}

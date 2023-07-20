@@ -1,0 +1,139 @@
+{% extends "base.html.twig" %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block body %}
+<main>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <button class="btn btn-primary my-5 float-end" data-bs-toggle="modal" data-bs-target="#employeeModal">Add Address</button>
+            </div>
+            <div class="col-md-12">
+                <table class="table" id="addresses">
+                    <thead>
+                        <tr>
+                            <td>Address</td>
+                            <td>City</td>
+                            <td>State</td>
+                            <td>Country</td>
+                            <td>Action</td>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Modal -->
+        <div class="modal fade" id="employeeModal" tabindex="-1" aria-labelledby="employeeModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="employeeModalLabel">Add Employee</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="employeeAddressForm" novalidate>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <input type="hidden" name="address_id" id="address_id">
+                        <input type="text" class="form-control" id="address" name="address" placeholder="Address" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="city" class="form-label">City</label>
+                        <input type="text" class="form-control" id="city" name="city" placeholder="City Name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="state" class="form-label">State</label>
+                        <input type="text" class="form-control" id="state" name="state" placeholder="State Name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="country" class="form-label">Country</label>
+                        <input type="text" class="form-control" id="country" name="country" placeholder="Country Name" required>
+                    </div>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+            </div>
+        </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+    var addresses;
+
+    addresses = $('#addresses').DataTable({
+        ajax: "{{url('ajax-get-all-employee-addresses', {'employee_id': app.request.attributes.get('_route_params')['id'] })}}"
+    });
+
+    $('#employeeAddressForm').on('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var formData = new FormData($(this)[0]);
+
+        $.ajax({
+            method: "POST",
+            url: "{{url('save-employee-address', {'employee_id': app.request.attributes.get('_route_params')['id'] })}}",
+            data: new FormData($(this)[0]),
+            dataType: "JSON",
+            processData: false,
+            contentType: false,
+            encode: true,
+            success: function() {
+                $('#employeeModal').modal('toggle');
+                $('#employeeAddressForm')[0].reset();
+                addresses.ajax.reload();
+            },
+            error: function() {}
+        })
+    })
+
+    $('body').on('click', '.edit-address', function(e) {
+        e.preventDefault();
+        address_id = $(this).data('id');
+
+        $.ajax({
+            type: "GET",
+            url: "{{url('ajax-get-address-data')}}",
+            data: {address_id},
+            dataType: 'JSON',
+            success: function(response) {
+                $('#employeeModal').modal('toggle');
+                address_data = response.data;
+                $('#address_id').val(address_data.id)
+                $('#address').val(address_data.address)
+                $('#city').val(address_data.city)
+                $('#state').val(address_data.state)
+                $('#country').val(address_data.country)
+            },
+            error: function() {}
+        })
+    })
+
+    $('body').on('click', '.delete-address', function(e) {
+        e.preventDefault();
+        address_id = $(this).data('id');
+
+        if(confirm('Are You Sure?'))
+        {
+            $.ajax({
+                type: "GET",
+                url: "{{url('ajax-remove-address')}}",
+                data: {address_id},
+                dataType: 'JSON',
+                success: function(response) {
+                    addresses.ajax.reload()
+                },
+                error: function() {}
+            })
+        }        
+    })
+</script>
+{% endblock %}
